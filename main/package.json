@@ -45,9 +45,12 @@
     }
   },
   "dependencies": {
+    "decompress-zip": "^0.3.3",
+    "electron-dl": "^3.2.1",
     "electron-squirrel-startup": "^1.0.0",
     "file-utils": "^0.2.2",
     "minecraft-launcher-core": "^3.16.4",
+    "node-downloader-helper": "^1.0.18",
     "public-ip": "^4.0.4",
     "rcon-client": "^4.2.3"
   },

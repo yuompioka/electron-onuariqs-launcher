@@ -1,6 +1,16 @@
 const { app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 
+const DESTINATION_PATH = `${app.getAppPath()}\\.minecraft\\`;
+const APP_DIR = app.getAppPath();
+
+var mainProcessVars = {
+  path: DESTINATION_PATH,
+  app_path: APP_DIR,
+}
+
+const {download} = require('electron-dl');
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
@@ -8,7 +18,7 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1280,
+    width: 1280 + 20,
     height: 720,
     icon: path.join(__dirname, 'icon.ico'),
     webPreferences: {
@@ -23,9 +33,9 @@ const createWindow = () => {
   mainWindow.setMenuBarVisibility(false);
 
   // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };
-
+app.commandLine.appendSwitch ("disable-http-cache");
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -51,6 +61,22 @@ app.on('activate', () => {
 ipcMain.on('quit-app', function() {
   tray.window.close(); // Standart Event of the BrowserWindow object.
   app.quit(); // Standart event of the app - that will close our app.
+});
+
+ipcMain.on('variable-request', function (event, arg) {
+  event.sender.send('variable-reply', [mainProcessVars[arg[0]], mainProcessVars[arg[1]]]);
+});
+
+ipcMain.on('downloadUpdate', (event, arg) => {
+  arg.properties.onProgress = function(obj) {
+    //console.log('hi' + ` ${obj.transferredBytes}`);
+    event.reply('updateDownloadProgress', obj);
+  }
+  arg.properties.onCompleted = function(obj) {
+    event.reply('DownloadCompleted', obj);
+  };
+  download(BrowserWindow.getFocusedWindow(), arg.url, arg.properties)
+  .then(dl => event.sender.send("updateDownloadCompleted", dl.getSavePath()));
 });
 
 // In this file you can include the rest of your app's specific main process

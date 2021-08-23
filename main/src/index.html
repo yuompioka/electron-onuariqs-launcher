@@ -10,7 +10,7 @@
       <br>
       <p>Сколько памяти (в ГБ) может потреблять Minecraft?<text id="ram_value"> - 2</text></p>
       <div class="slidecontainer">
-        <input type="range" min="4" max="12" value="2" class="slider-color" id="ram_usage">
+        <input type="range" min="2" max="12" value="2" class="slider-color" id="ram_usage">
       </div>
     </div>
 
@@ -23,7 +23,14 @@
         </div>
         <div class="column debug-animated main-station">
           <div class="row console-container">
-            <div class="row console">
+            <div class="progress">
+              <div class="container_0">
+                <p style="margin-right: 5px;" id="progress_bar_text">0%</p>
+                <p id="remaining">0 KB/s</p>
+              </div>
+              <progress id="progress_bar" value="0"></progress>
+            </div>
+            <div class="console">
               <text id="console_log">[Строка уведомлений]</text>
             </div>
           </div>
@@ -61,6 +68,7 @@
 
   <script src="script.js"></script>
   <script src="auth.js"></script>
+  <script src="renderer.js"></script>
   <script src="core.js"></script>
-  <script src="file-utils.js"></script>
+  <!--<script src="file-utils.js"></script>-->
 </html>
