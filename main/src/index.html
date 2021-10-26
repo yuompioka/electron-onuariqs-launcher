@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="index.css">
     <script src="index.js"></script>
   </head>
-  <body scroll="no" style="overflow: hidden" background="http://localhost:8080/background.png">
+  <body scroll="no" style="overflow: hidden" background="http://yuoco.myogaya.jp:8080/background.png">
     <div class="debug-animated settings">
       <br>
       <p>Сколько памяти (в ГБ) может потреблять Minecraft?<text id="ram_value"> - 2</text></p>
@@ -16,6 +16,17 @@
 
     <div class="workstation">
       <div class="row workstation">
+        <div class="skin-changer">
+          <div class="skincard">
+            <iframe class="skin_viewer" src="skin-viewer/skin.html"></iframe>
+            <button class="pushable" id="skin-upload-button">
+              <span class="front" id="skin-upload-button-front">
+                <p>Установить</p>
+                <p id="version">(Вы должны быть авторизированы)</p>
+              </span>
+            </button>
+          </div>
+        </div>
         <div class="column text-news">
           <div class="content-container">
           <a class="twitter-timeline" data-lang="ru" data-width="565" data-height="400" href="https://twitter.com/yuompioka?ref_src=twsrc%5Etfw">Tweets by yuocoltd</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -35,10 +46,10 @@
             </div>
           </div>
           <div class="row">
-            <div class="card3d img-animated"><img src="http://localhost:8080/poster_1.png" alt="Image server down" width="120"></div>
-            <div class="card3d img-animated"><img src="http://localhost:8080/poster_2.png" alt="Image server down" width="120"></div>
-            <div class="card3d img-animated"><img src="http://localhost:8080/poster_3.png" alt="Image server down" width="120"></div>
-            <div class="card3d img-animated"><img src="http://localhost:8080/poster_4.png" alt="Image server down" width="120"></div>
+            <div class="card3d img-animated"><img src="http://yuoco.myogaya.jp:8080/poster_1.png" alt="Image server down" width="120"></div>
+            <div class="card3d img-animated"><img src="http://yuoco.myogaya.jp:8080/poster_2.png" alt="Image server down" width="120"></div>
+            <div class="card3d img-animated"><img src="http://yuoco.myogaya.jp:8080/poster_3.png" alt="Image server down" width="120"></div>
+            <div class="card3d img-animated"><img src="http://yuoco.myogaya.jp:8080/poster_4.png" alt="Image server down" width="120"></div>
           </div>
         </div>
       </div>
@@ -56,19 +67,35 @@
           <button class="pushable" id="launch-button">
             <span class="front" id="front">
               <p>ЗАПУСК</p>
-              <p id="version">(Также обновляет и проверяет сброрку)</p>
+              <p id="version">(Также обновляет и проверяет сборку)</p>
             </span>
           </button>
         </div>
         </div>
   </body>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/core.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/md5.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>
+
+  <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
 
   <script src="script.js"></script>
   <script src="auth.js"></script>
   <script src="renderer.js"></script>
   <script src="core.js"></script>
+  <script>
+    let user_ip;
+    function getIP(json) {
+      //alert("My public IP address is: " + json.ip);
+      user_ip = json.ip;
+      swal({
+        title: "Проверка",
+        text: `Ваш внешний IP-адрес: ${user_ip}`,
+        icon: "info",
+        button: false,
+      });
+    }
+    </script>
+    <script src="https://api.ipify.org?format=jsonp&callback=getIP"></script>
   <!--<script src="file-utils.js"></script>-->
 </html>

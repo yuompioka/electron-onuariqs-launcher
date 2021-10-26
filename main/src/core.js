@@ -1,9 +1,9 @@
 let console = document.getElementById("console_log");
-const publicIp = require('public-ip');
 
 const progress_bar = document.getElementById("progress_bar");
 const progress_bar_text = document.getElementById("progress_bar_text");
 const remaining = document.getElementById("remaining");
+const $ = require('jquery');
 
 let minecraft_dir_alter = "";
 let app_dir_alter = "";
@@ -32,11 +32,11 @@ function getChecksum(path) {
 
 async function downloadManager(instruction) {
     if (instruction == "GAME") {
-        downloadFile("http://localhost:8080/files/game.zip", "game.zip");
+        downloadFile("http://yuoco.myogaya.jp:8080/files/game.zip", "game.zip");
     } else if (instruction == "MODPACK") {
-        downloadFile("http://localhost:8080/files/modpack.zip", "modpack.zip");
+        downloadFile("http://yuoco.myogaya.jp:8080/files/modpack.zip", "modpack.zip");
     } else if (instruction == "RESOURCEPACK") {
-        downloadFile("http://localhost:8080/files/resourcepack.zip", "resourcepack.zip");
+        downloadFile("http://yuoco.myogaya.jp:8080/files/resourcepack.zip", "resourcepack.zip");
     }
 };
 
@@ -66,12 +66,13 @@ const launcher = new Client();
 let opts = {
     clientPackage: null,
     authorization: null,
-    root: ".minecraft",
-    forge: ".minecraft\\forge-1.16.5-36.2.2-installer.jar",
+    root: "resources\\app\\.minecraft",
+    forge: "resources\\app\\.minecraft\\forge-1.16.5-36.2.8-installer.jar",
+    javaPath: path.resolve("resources\\app\\.minecraft\\jre1.8.0_281\\bin\\java.exe"),
     version: {
-        custom: "forge-1.16.5-36.2.2",
         number: "1.16.5",
-        type: "release"
+        type: "release",
+        custom: "1.16.5-forge-36.2.8"
     },
     memory: {
         max: null,
@@ -79,17 +80,18 @@ let opts = {
     },
 }
 
-function getLoginData() {
+async function getLoginData() {
     let authData = {
         nickname: document.getElementById("nickname_placeholder").value,
         passwordMD5: CryptoJS.MD5(document.getElementById("password_placeholder").value).toString(),
+        ip: user_ip,
     };
     return authData;
 };
 
 async function modpackChecked() {
 
-    let api_url = "http://localhost:8080/init.json";
+    let api_url = "http://yuoco.myogaya.jp:8080/init.json";
     let response = await fetch(api_url);
     let data = await response.json();
     updateConsole(data.use);
@@ -114,17 +116,25 @@ async function modpackChecked() {
     // check modpack \/
     for (let [key, value] of Object.entries(data.required_mods)) {
         iter_file = `${minecraft_dir_alter}\\mods\\${key}`;
-        if (!fs.existsSync(iter_file)) {
+
+        if (!fs.existsSync(iter_file) && value[0]!="NO_HASH") {
             return "MODPACK_CORRUPTED";
-        } else {
+         } else if (!fs.existsSync(iter_file) && value[0]=="NO_HASH"){
+            // pass
+         } else {
             // check file MD5 hash
 
             let hash = await getChecksum(iter_file)
 
             if (hash !== value[0]) {
+                try{
+                    fs.rmSync(iter_file);
+                } catch(e){};
                 updateConsole(`${hash}`);
-                return "MODPACK_CORRUPTED";
-            }
+                if (value[0]!="NO_HASH") {
+                    return "MODPACK_CORRUPTED";
+                };
+            };
         };
         updateConsole(`${key} проверен.`, true);
     };
@@ -134,7 +144,7 @@ async function modpackChecked() {
 };
 
 async function startupCheck() {
-    let response = await connectToAuthServers(getLoginData());
+    let response = await connectToAuthServers(await getLoginData());
     if(response.includes("LOGGED_IN")) {
         let state = await modpackChecked();
         if(state == "MODPACK_CORRECT") {
@@ -156,7 +166,16 @@ async function startupCheck() {
             return "UNEXPECTED";
         }
     } else {
-        //updateConsole("Данные авторизации неверны или сервера не доступны (Код 200)");
+        updateConsole("Данные авторизации неверны, некорректны или сервера не доступны (Код 200)");
+        swal({
+            title: "Хм...",
+            text: "Что-то пошло не так",
+            icon: "error",
+            timer: 1500,
+            button: false,
+          });
+        launch_button.disabled = false;
+        buttonToggle(false);
         return false;
     }
 };
@@ -177,17 +196,27 @@ updateConsole("Консоль подключена к главному проц�
 
 async function launchGame() {
 
+    launch_button.disabled = true;
+    buttonToggle(true);
+
     try {
+        
         if(await startupCheck() == "CORRECT"){
             updateConsole("Устанавливаю аргументы запуска (Код 300)");
             setOptions();
             updateConsole("Запускаю клиент... (Код 301)");
+            swal({
+                title: "Клиент запущен",
+                text: "Вы не можете взаимодействовать с лаунчером. Для нового входа перезапустите его.",
+                icon: "info",
+                button: false,
+                closeOnEsc: false,
+                closeOnClickOutside: false,
+              });
             try {
                 launcher.launch(opts);
-                launch_button.disabled = true;
-                buttonToggle(true);
             }
-            catch {
+            catch (e) {
                 updateConsole("Лаунчер не смог создать процесс игры. Попробуйте ещё раз или обратитесь к администратору.");
             };
         } else {
@@ -201,5 +230,5 @@ async function launchGame() {
 
 let launch_button = document.getElementById("launch-button");
 launch_button.onclick = async () => await launchGame();
-//launcher.on('debug', (e) => updateConsole(`${e}`, true));
+launcher.on('debug', (e) => updateConsole(`${e}`));
 //launcher.on('data', (e) => updateConsole(`${e}`));

@@ -24,6 +24,7 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      //webSecurity: false
     },
   });
 
@@ -33,7 +34,7 @@ const createWindow = () => {
   mainWindow.setMenuBarVisibility(false);
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 };
 app.commandLine.appendSwitch ("disable-http-cache");
 // This method will be called when Electron has finished

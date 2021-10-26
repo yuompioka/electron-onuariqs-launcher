@@ -1,6 +1,7 @@
 const ipcRenderer = require('electron').ipcRenderer;
 const DecompressZip = require('decompress-zip');
 const fs = require('fs');
+const { Rcon } = require("rcon-client");
 ipcRenderer.send('variable-request', ['path', 'app_path']);
 
 let minecraft_dir = "";
@@ -11,6 +12,20 @@ ipcRenderer.on('variable-reply', function (event, args) {
   app_dir = args[1];
   updateConsole(app_dir)
 });
+
+
+async function executeRconCommand(command) {
+  try {
+    let rcon = await Rcon.connect({
+    host: "yuoco.myogaya.jp", port: 15234, password: "iTCFSHYAugk7R6Mn"
+  });
+  let response = await rcon.send(command);
+  rcon.end();
+  return response.toString();
+  } catch(e){
+    return "FAIL";
+  }
+}
 
 let file_to_unzip = ""
 
@@ -31,6 +46,15 @@ function unzipManager(state) {
 
   unzipper.on('extract', () => {
     updateConsole('Файлы разархивированы.');
+    swal({
+      title: "Файлы разархивированы",
+      text: "Все необходимые для работы файлы успешно загружены и распакованы",
+      icon: "success",
+      button: false,
+      timer: 1500,
+    });
+    launch_button.disabled = false;
+    buttonToggle(false, "launch");
   });
   
   unzipper.on('progress', function (fileIndex, fileCount) {
@@ -43,7 +67,10 @@ function unzipManager(state) {
 };
 
 async function downloadFile(url, filename) {
-  fs.rmdirSync(`${app_dir}\\downloads\\${filename}`, { recursive: true });
+  try {
+    fs.rmdirSync(`${app_dir}\\downloads\\${filename}`, { recursive: true });
+  } catch(e) {};
+
   ipcRenderer.send("downloadUpdate", {
     url: url,
       properties: {
@@ -81,14 +108,22 @@ ipcRenderer.on("DownloadCompleted", (event, obj) => {
   let extract = "";
 
   if (obj.url.includes("modpack.zip")) {
-    fs.rmdirSync(`${minecraft_dir}\\config\\`, { recursive: true });
-    fs.rmdirSync(`${minecraft_dir}\\mods\\`, { recursive: true });
+
+    try {fs.rmdirSync(`${minecraft_dir}\\config\\`, { recursive: true });
+    fs.rmdirSync(`${minecraft_dir}\\mods\\`, { recursive: true });} catch(e){};
+
     extract = "modpack";
   } else if (obj.url.includes("resourcepack.zip")) {
-    fs.rmdirSync(`${minecraft_dir}\\resourcepacks\\`, { recursive: true });
+
+    try {
+    fs.rmdirSync(`${minecraft_dir}\\resourcepacks\\`, { recursive: true });} catch(e){};
+
     extract = "resourcepack";
   } else {
-    fs.rmdirSync(minecraft_dir, { recursive: true });
+
+    try {
+    fs.rmdirSync(minecraft_dir, { recursive: true }); } catch(e){};
+
     extract = "game";
   }
   unzipManager(extract);

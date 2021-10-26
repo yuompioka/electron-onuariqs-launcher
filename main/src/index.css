@@ -83,6 +83,8 @@ input[type="text"]:focus, input[type="password"]:focus {
   border-radius: 50%;
   cursor: pointer;
   transition: transform 250ms;
+  margin-bottom: 2px;
+  margin-left: 1px;
 }
 
 .slider-color::-webkit-slider-thumb:hover {
@@ -120,6 +122,7 @@ input[type="text"]:focus, input[type="password"]:focus {
   height: inherit;
   width: 200px;
   margin: 10px auto;
+  position: relative;
 }
 
 .service {
@@ -169,6 +172,39 @@ input[type="text"]:focus, input[type="password"]:focus {
 .main-station {
   width: 50%;
   margin-right: 5px;
+}
+
+.skin-changer {
+  width: 10px;
+  height: 100%;
+}
+
+.skincard {
+  background-color: white;
+  height: 100%;
+  border-radius: 30px;
+  width: 300px;
+  opacity: 0;
+  transition: all 500ms ease-out;
+  z-index: 2;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.skincard:hover {
+  opacity: 1;
+  position: relative;
+  z-index: 10;
+}
+
+.skin_viewer {
+  height: 325px;
+  width: 250px;
+  margin: 0px;
+  margin-top: 8px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .console-container {
@@ -285,7 +321,6 @@ iframe {
 }
 
 .pushable:hover .front {
-  box-shadow: 0px 4px 20px 10px rgba(78, 205, 255, 0.151);
   transform: translateY(-6px);
   transition:
     transform
@@ -296,4 +331,36 @@ iframe {
 .pushable:active .front {
   transform: translateY(-2px);
   transition: transform 34ms;
+}
+
+.swal-modal {
+  border-radius: 25px;
+}
+
+.swal-text {
+  text-align: center;
+}
+
+/* disable selection */
+:not(input):not(textarea),
+:not(input):not(textarea)::after,
+:not(input):not(textarea)::before {
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+input, button, textarea, :focus {
+    outline: none;
+}
+
+/* disable image and anchor dragging */
+a:not([draggable=true]), img:not([draggable=true]) {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
+a[href^="http://"],
+a[href^="https://"],
+a[href^="ftp://"] {
+    -webkit-user-drag: auto;
+    user-drag: auto;
 }

@@ -1,9 +1,10 @@
 {
   "name": "main",
-  "productName": "Minecraft Launcher",
+  "productName": "Resulum Launcher",
   "version": "1.0.0",
   "description": "Resulum Launcher written on Electron",
   "main": "src/index.js",
+  "icon": "/src/icon.ico",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -18,48 +19,24 @@
   },
   "license": "MIT",
   "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "src"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
-      ]
-    }
+    "forge": "forge.config.js"
   },
   "dependencies": {
     "decompress-zip": "^0.3.3",
     "electron-dl": "^3.2.1",
     "electron-squirrel-startup": "^1.0.0",
-    "file-utils": "^0.2.2",
-    "minecraft-launcher-core": "^3.16.4",
+    "jquery": "^3.6.0",
+    "minecraft-launcher-core": "^3.16.8",
     "node-downloader-helper": "^1.0.18",
     "public-ip": "^4.0.4",
     "rcon-client": "^4.2.3"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.59",
-    "@electron-forge/maker-deb": "^6.0.0-beta.59",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.59",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.59",
-    "@electron-forge/maker-zip": "^6.0.0-beta.59",
-    "electron": "13.1.7"
+    "@electron-forge/cli": "^6.0.0-beta.61",
+    "@electron-forge/maker-deb": "^6.0.0-beta.61",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.61",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
+    "@electron-forge/maker-zip": "^6.0.0-beta.61",
+    "electron": "^15.2.0"
   }
 }
