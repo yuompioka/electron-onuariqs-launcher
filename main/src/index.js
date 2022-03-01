@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 
-const DESTINATION_PATH = `${app.getAppPath()}\\.minecraft\\`;
-const APP_DIR = app.getAppPath();
+const DESTINATION_PATH = `${app.getAppPath().replace('\\resources\\app.asar','')}\\.minecraft\\`;
+const APP_DIR = app.getAppPath().replace('\\resources\\app.asar','');
 
 var mainProcessVars = {
   path: DESTINATION_PATH,
@@ -24,19 +24,20 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      //webSecurity: false
+      webSecurity: false
     },
   });
 
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  mainWindow.setResizable(false);
+  mainWindow.setResizable(true);
   mainWindow.setMenuBarVisibility(false);
 
   // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };
 app.commandLine.appendSwitch ("disable-http-cache");
+app.commandLine.appendSwitch('disable-site-isolation-trials')
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.

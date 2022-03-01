@@ -4,15 +4,25 @@ const fs = require('fs');
 const { Rcon } = require("rcon-client");
 ipcRenderer.send('variable-request', ['path', 'app_path']);
 
+const {shell} = require('electron') // deconstructing assignment
+
 let minecraft_dir = "";
 let app_dir = "";
 
 ipcRenderer.on('variable-reply', function (event, args) {
   minecraft_dir = args[0];
   app_dir = args[1];
-  updateConsole(app_dir)
+  //updateConsole(app_dir)
+  try {fs.rmdirSync(`${minecraft_dir}\\assets\\skins\\`, { recursive: true });} catch(e){};
 });
 
+function deleteGameDir() {
+  fs.rm(`${minecraft_dir}`, { recursive: true });
+}
+
+function showScreenshotsFolder() {
+  shell.openPath(`${minecraft_dir}screenshots`);;
+}
 
 async function executeRconCommand(command) {
   try {
@@ -46,11 +56,11 @@ function unzipManager(state) {
 
   unzipper.on('extract', () => {
     updateConsole('Файлы разархивированы.');
-    swal({
+    Swal.fire({
       title: "Файлы разархивированы",
       text: "Все необходимые для работы файлы успешно загружены и распакованы",
       icon: "success",
-      button: false,
+      showConfirmButton: false,
       timer: 1500,
     });
     launch_button.disabled = false;

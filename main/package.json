@@ -1,8 +1,8 @@
 {
   "name": "main",
-  "productName": "Resulum Launcher",
-  "version": "1.0.0",
-  "description": "Resulum Launcher written on Electron",
+  "productName": "Onuariqs-Launcher",
+  "version": "1.2.75",
+  "description": "Onuariqs Launcher written on Electron",
   "main": "src/index.js",
   "icon": "/src/icon.ico",
   "scripts": {
@@ -29,7 +29,9 @@
     "minecraft-launcher-core": "^3.16.8",
     "node-downloader-helper": "^1.0.18",
     "public-ip": "^4.0.4",
-    "rcon-client": "^4.2.3"
+    "rcon-client": "^4.2.3",
+    "trim-off-newlines": "^1.0.3",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.61",
@@ -37,6 +39,6 @@
     "@electron-forge/maker-rpm": "^6.0.0-beta.61",
     "@electron-forge/maker-squirrel": "^6.0.0-beta.61",
     "@electron-forge/maker-zip": "^6.0.0-beta.61",
-    "electron": "^15.2.0"
+    "electron": "^16.0.8"
   }
 }

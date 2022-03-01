@@ -1,5 +1,8 @@
 let console = document.getElementById("console_log");
 
+const { v5: uuidv5 } = require('uuid');
+const MY_NAMESPACE = '00000000-0000-0000-0000-000000000000';
+
 const progress_bar = document.getElementById("progress_bar");
 const progress_bar_text = document.getElementById("progress_bar_text");
 const remaining = document.getElementById("remaining");
@@ -11,13 +14,25 @@ let app_dir_alter = "";
 ipcRenderer.on('variable-reply', function (event, args) {
     minecraft_dir_alter = args[0];
     app_dir_alter = args[1];
+    
+    try {
+
+        jsonReader(`${app_dir_alter}\\config.json`, (err, config) => {
+            if (config.nickname != null){
+                document.getElementById("nickname_placeholder").value = config.nickname;
+                document.getElementById("ram_value").innerHTML = config.memory
+            }
+        })
+
+    } catch(e) {
+        window.console.log(e);
+    }
 });
 
 const crypto = require('crypto');
 
 function getChecksum(path) {
     return new Promise((resolve, reject) => {
-      // if absolutely necessary, use md5
       const hash = crypto.createHash('md5');
       const input = fs.createReadStream(path);
       input.on('error', reject);
@@ -63,16 +78,22 @@ function buttonToggle(isDisabled){
 const { Client, Authenticator } = require('minecraft-launcher-core');
 const launcher = new Client();
 
+let settings = {
+    nickname: null,
+    memory: null,
+    uuid: null
+}
+
 let opts = {
     clientPackage: null,
     authorization: null,
-    root: "resources\\app\\.minecraft",
-    forge: "resources\\app\\.minecraft\\forge-1.16.5-36.2.8-installer.jar",
-    javaPath: path.resolve("resources\\app\\.minecraft\\jre1.8.0_281\\bin\\java.exe"),
+    root: ".minecraft",
+    // forge: "resources\\app\\.minecraft\\forge-1.16.5-36.2.8-installer.jar",
+    javaPath: path.resolve(".minecraft\\jdk-17.0.1\\bin\\java.exe"),
     version: {
-        number: "1.16.5",
+        number: "1.18.1",
         type: "release",
-        custom: "1.16.5-forge-36.2.8"
+        custom: "fabric-loader-0.12.12-1.18.1"
     },
     memory: {
         max: null,
@@ -85,9 +106,15 @@ async function getLoginData() {
         nickname: document.getElementById("nickname_placeholder").value,
         passwordMD5: CryptoJS.MD5(document.getElementById("password_placeholder").value).toString(),
         ip: user_ip,
+        launcherVersion: "7e26e894",
+        uuid: settings.uuid
     };
     return authData;
 };
+
+async function generateUUID(text) {
+    return uuidv5(`Auth:${text}`, MY_NAMESPACE);
+}
 
 async function modpackChecked() {
 
@@ -105,10 +132,10 @@ async function modpackChecked() {
     // check resourcepack
     let res_zip = `${minecraft_dir_alter}\\resourcepacks\\_cit-version.zip`;
 
-    let hash_0 = await getChecksum(res_zip);
+    let hash_0 = ""; //await getChecksum(res_zip);
 
     if (hash_0 !== data.resourcepack_MD5) {
-        return "RESOURCEPACK_UPDATE";
+        // return "RESOURCEPACK_UPDATE";
     }
 
     let iter_file = null;
@@ -165,14 +192,18 @@ async function startupCheck() {
             updateConsole("Не удалось проверить целостность файлов игры, обратитесь к администратору.");
             return "UNEXPECTED";
         }
+    } else if(response.includes("OUTDATED")) {
+        launch_button.disabled = false;
+        buttonToggle(false);
+        return false;
     } else {
         updateConsole("Данные авторизации неверны, некорректны или сервера не доступны (Код 200)");
-        swal({
+        Swal.fire({
             title: "Хм...",
             text: "Что-то пошло не так",
             icon: "error",
             timer: 1500,
-            button: false,
+            showConfirmButton: false,
           });
         launch_button.disabled = false;
         buttonToggle(false);
@@ -182,22 +213,41 @@ async function startupCheck() {
 
 function setOptions() {
     let ram = document.getElementById("ram_value");
+
     let ram_actual = ram.innerHTML.replace(" — ", "");
     ram_actual = ram_actual.replace("GB", "G");
 
     opts.memory.max = ram_actual;
     opts.memory.min = ram_actual;
-    opts.authorization = Authenticator.getAuth(document.getElementById("nickname_placeholder").value)
 
+    opts.authorization = {
+        uuid: generateUUID(document.getElementById("nickname_placeholder").value)
+    };
+
+    Authenticator.changeApiUrl("http://localhost:81");
+    let MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
+    opts.authorization = Authenticator.getAuth(document.getElementById("nickname_placeholder").value, MD5pass);
+    updateConsole(`${MD5pass} ${opts.authorization.uuid}`)
     updateConsole(`Аргумент RAM: ${ram_actual} (Код 400)`);
+
 };
 
 updateConsole("Консоль подключена к главному процессу/...");
 
 async function launchGame() {
 
-    launch_button.disabled = true;
-    buttonToggle(true);
+    //launch_button.disabled = true;
+    //buttonToggle(true);
+
+    settings.nickname = document.getElementById("nickname_placeholder").value;
+    settings.memory = document.getElementById("ram_value").innerHTML;
+    settings.uuid = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
+
+    try {
+        writeConfig(`${app_dir_alter}\\config.json`, settings);
+    } catch {
+        updateConsole("Не получилось сохранить файл конфигурации.")
+    }
 
     try {
         
@@ -205,13 +255,14 @@ async function launchGame() {
             updateConsole("Устанавливаю аргументы запуска (Код 300)");
             setOptions();
             updateConsole("Запускаю клиент... (Код 301)");
-            swal({
+            Swal.fire({
                 title: "Клиент запущен",
                 text: "Вы не можете взаимодействовать с лаунчером. Для нового входа перезапустите его.",
                 icon: "info",
-                button: false,
-                closeOnEsc: false,
-                closeOnClickOutside: false,
+                showConfirmButton: true,
+                allowEscapeKey: false,
+                allowEnterKey: false,
+                allowOutsideClick: false,
               });
             try {
                 launcher.launch(opts);
@@ -227,6 +278,103 @@ async function launchGame() {
         updateConsole("Что-то пошло не так... (Код 100)" + e); // коды, начинающиеся с 1 - проблемы с клиентом, 2 - сервером, 3 - в процессе, 4 - успех
     };
 };
+async function uploadSkinProcess(authData) {
+    let inner = document.getElementById('SkinViewer').contentWindow.document;
+    updateConsole("Вы загружаете скин...");
+    let checkbox = inner.getElementById("changeEdtion");
+    let skinFormat = "";
+    if (checkbox.checked == true) {
+        skinFormat = "4px";
+    } else {
+        skinFormat = "3px";
+    }
+
+    let response = await executeRconCommand(`upload-validate ${authData.nickname} ${authData.passwordMD5} ${authData.ip} ${skinFormat}`);
+
+    if(response.includes("AUTHORIZED")){
+        Swal.fire({
+            title: "Пробуем загрузить...",
+            text: "Процесс установки скина инициализирован. Следуйте дальнейшим инструкциям в окне установки скина",
+            icon: "info",
+            showConfirmButton: false
+          });
+    } else {
+        Swal.fire({
+            title: "Эй!",
+            text: "Вы не можете установить скин не для своего аккаунта",
+            icon: "error",
+            showConfirmButton: false,
+            timer: 3000,
+          });
+    }
+}
+
+function syncNickname(object) {
+    object.elements["Nickname"].value = document.getElementById("nickname_placeholder").value;
+    updateConsole(`${object.elements["Nickname"].value}`)
+}
+
+var form;
+document.getElementById('SkinViewer').onload = function() {
+    let change_to = document.getElementById('SkinViewer').contentWindow.document.getElementById("skinForm");
+    let button_change = document.getElementById('SkinViewer').contentWindow.document.getElementById("skin-upload-button");
+    if(button_change != null) {
+        button = button_change
+        button.onclick = () => syncNickname(document.getElementById('SkinViewer').contentWindow.document.getElementById("skinForm"));
+    }
+    if(change_to != null){
+        form = change_to
+        form.onsubmit = async() => await uploadSkinProcess(await getLoginData());
+    }
+};
+
+async function promptDeleting() {
+    Swal.fire({
+        title: 'Вы уверены, что хотите удалить игру?',
+        text: "Будут удалены: директория с игрой, все ваши логи и скриншоты, которые вы сделали на сервере",
+        icon: 'question',
+        showCancelButton: true,
+        cancelButtonText: "Не удалять",
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Да, удалить'
+      }).then((result) => {
+        if (result.isConfirmed) {
+            try{deleteGameDir();}catch{
+                Swal.fire({
+                    title: 'Ой!',
+                    text: 'Не получилось удалить директорию игры автоматически...',
+                    icon: 'error',
+                    showConfirmButton: false,
+                  })
+            };
+        }
+      })
+}
+
+function openModsMenu() {
+    let menu = document.getElementById("1");
+    menu.classList.add('active');
+    document.getElementById("expand-button").classList.add('active');
+}
+
+function closeModsMenu() {
+    let menu = document.getElementById("1");
+    menu.classList.remove('active');
+    document.getElementById("expand-button").classList.remove('active');
+}
+
+let delete_button = document.getElementById("delete-button");
+delete_button.onclick = async() => await promptDeleting();
+
+let open_folder = document.getElementById("open-folder-button");
+open_folder.onclick = () => showScreenshotsFolder();
+
+let edit_mods = document.getElementById("mods-choose-button");
+edit_mods.onclick = () => openModsMenu();
+
+let close_mods = document.getElementById("expand-button");
+close_mods.onclick = () => closeModsMenu();
 
 let launch_button = document.getElementById("launch-button");
 launch_button.onclick = async () => await launchGame();

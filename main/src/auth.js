@@ -4,27 +4,34 @@ async function connectToAuthServers(authData) {
         buttonToggle(false);
         return "NICKNAME_CHECK_FAILED";
     }
-
-    let response = await executeRconCommand(`rcon-auth ${authData.nickname} ${authData.passwordMD5} ${authData.ip}`);
+    let response = await executeRconCommand(`rcon-auth ${authData.nickname} ${authData.passwordMD5} ${authData.ip} ${authData.launcherVersion} ${authData.uuid}`);
     //updateConsole(response);
 
     if(response.includes("SUCCESS")){
-        swal({
+        Swal.fire({
             title: "Всё отлично!",
             text: "Вы авторизированы",
             icon: "success",
-            button: false,
+            showConfirmButton: false,
             timer: 1500,
           });
         return "LOGGED_IN"
     } else if (response.includes("REGISTERED")){
-        swal({
+        Swal.fire({
             title: "Успешная регистрация",
             text: `Вы создали аккаунт с никнеймом ${authData.nickname}`,
             icon: "info",
-            button: false,
+            showConfirmButton: false,
           });
         return "LOGGED_IN"
+    } else if (response.includes("OUTDATED")) {
+        Swal.fire({
+            title: "Ваш лаунчер устарел",
+            text: `Скачайте установщик новой версии и запустите его`,
+            icon: "warning",
+            showConfirmButton: false,
+          });
+        return "OUTDATED"
     } else {
         return "FAILED"
     }
