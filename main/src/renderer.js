@@ -2,7 +2,7 @@ const ipcRenderer = require('electron').ipcRenderer;
 const DecompressZip = require('decompress-zip');
 const fs = require('fs');
 const { Rcon } = require("rcon-client");
-ipcRenderer.send('variable-request', ['path', 'app_path']);
+ipcRenderer.send('variable-request', ['path', 'app_path', "app_version"]);
 
 const {shell} = require('electron') // deconstructing assignment
 
@@ -17,7 +17,19 @@ ipcRenderer.on('variable-reply', function (event, args) {
 });
 
 function deleteGameDir() {
-  fs.rm(`${minecraft_dir}`, { recursive: true });
+  try{
+    fs.rm(`${minecraft_dir}`, { recursive: true });
+  } catch(e) {
+    throw e;
+  }
+}
+
+function deleteGameFile(dir) {
+  try{
+    fs.rm(`${minecraft_dir}\\${dir}`, { recursive: true });
+  } catch(e) {
+    throw e;
+  }
 }
 
 function showScreenshotsFolder() {

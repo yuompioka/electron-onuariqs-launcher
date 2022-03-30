@@ -14,13 +14,19 @@ let app_dir_alter = "";
 ipcRenderer.on('variable-reply', function (event, args) {
     minecraft_dir_alter = args[0];
     app_dir_alter = args[1];
+    updateConsole(`Текущая версия лаунчера: ${args[2]}`);
     
     try {
 
         jsonReader(`${app_dir_alter}\\config.json`, (err, config) => {
             if (config.nickname != null){
                 document.getElementById("nickname_placeholder").value = config.nickname;
-                document.getElementById("ram_value").innerHTML = config.memory
+                document.getElementById("ram_value").innerHTML = config.memory;
+
+                document.getElementById("switch_xaeros").checked = config.enabledMods.xaeros;
+                document.getElementById("switch_litematica").checked = config.enabledMods['litematica'];
+                document.getElementById("switch_replaymod").checked = config.enabledMods['replaymod'];
+                document.getElementById("switch_footsteps").checked = config.enabledMods['footsteps'];
             }
         })
 
@@ -47,11 +53,9 @@ function getChecksum(path) {
 
 async function downloadManager(instruction) {
     if (instruction == "GAME") {
-        downloadFile("http://yuoco.myogaya.jp:8080/files/game.zip", "game.zip");
+        downloadFile("https://yuompioka.ml/static/launcher/game.zip", "game.zip");
     } else if (instruction == "MODPACK") {
-        downloadFile("http://yuoco.myogaya.jp:8080/files/modpack.zip", "modpack.zip");
-    } else if (instruction == "RESOURCEPACK") {
-        downloadFile("http://yuoco.myogaya.jp:8080/files/resourcepack.zip", "resourcepack.zip");
+        downloadFile("https://yuompioka.ml/static/launcher/modpack.zip", "modpack.zip");
     }
 };
 
@@ -81,7 +85,13 @@ const launcher = new Client();
 let settings = {
     nickname: null,
     memory: null,
-    uuid: null
+    uuid: null,
+    enabledMods: {
+        "xaeros": false,
+        "litematica": false,
+        "replaymod": false,
+        "footsteps": false
+    }
 }
 
 let opts = {
@@ -93,7 +103,7 @@ let opts = {
     version: {
         number: "1.18.1",
         type: "release",
-        custom: "fabric-loader-0.12.12-1.18.1"
+        custom: "fabric-loader-0.13.3-1.18.1"
     },
     memory: {
         max: null,
@@ -102,12 +112,12 @@ let opts = {
 }
 
 async function getLoginData() {
+    let tokenPrepare = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
     let authData = {
-        nickname: document.getElementById("nickname_placeholder").value,
-        passwordMD5: CryptoJS.MD5(document.getElementById("password_placeholder").value).toString(),
+        username: document.getElementById("nickname_placeholder").value,
+        password: CryptoJS.MD5(document.getElementById("password_placeholder").value).toString(),
         ip: user_ip,
-        launcherVersion: "7e26e894",
-        uuid: settings.uuid
+        clientToken: tokenPrepare.replace("-","")
     };
     return authData;
 };
@@ -118,7 +128,7 @@ async function generateUUID(text) {
 
 async function modpackChecked() {
 
-    let api_url = "http://yuoco.myogaya.jp:8080/init.json";
+    let api_url = "https://yuompioka.ml/static/launcher/init.json";
     let response = await fetch(api_url);
     let data = await response.json();
     updateConsole(data.use);
@@ -144,10 +154,29 @@ async function modpackChecked() {
     for (let [key, value] of Object.entries(data.required_mods)) {
         iter_file = `${minecraft_dir_alter}\\mods\\${key}`;
 
-        if (!fs.existsSync(iter_file) && value[0]!="NO_HASH") {
+        if (!fs.existsSync(iter_file) && value[0]!="NO_HASH" && value[0]!="OPTIONAL_MOD") {
             return "MODPACK_CORRUPTED";
          } else if (!fs.existsSync(iter_file) && value[0]=="NO_HASH"){
             // pass
+         } else if (value[0]=="OPTIONAL_MOD"){
+             
+            let current_mod = key.replace(".jar","")
+            if (!fs.existsSync(iter_file) && settings.enabledMods[`${current_mod}`]){
+                return "MODPACK_CORRUPTED"
+            }
+            if (fs.existsSync(iter_file) && !settings.enabledMods[`${current_mod}`]){
+                deleteGameFile(`mods\\${current_mod}.jar`)
+            }
+            try {
+                let hash = await getChecksum(iter_file);
+                window.console.log(hash);
+                if (hash !== value[1] && hash != null){
+                    return "MODPACK_CORRUPTED";
+                }
+            } catch {
+                // do nothing, mod file is probably deleted & disabled
+            };
+
          } else {
             // check file MD5 hash
 
@@ -171,7 +200,7 @@ async function modpackChecked() {
 };
 
 async function startupCheck() {
-    let response = await connectToAuthServers(await getLoginData());
+    let response = await validateCredentials(await getLoginData());
     if(response.includes("LOGGED_IN")) {
         let state = await modpackChecked();
         if(state == "MODPACK_CORRECT") {
@@ -184,18 +213,10 @@ async function startupCheck() {
             updateConsole("Модпак не установлен или повреждён (Код 101), загружаю файлы заново.");
             await downloadManager("MODPACK");
             return "INSTALL_MODPACK";
-        } else if (state == "RESOURCEPACK_UPDATE") {
-            updateConsole("Доступно обновление для серверного ресурспака.");
-            await downloadManager("RESOURCEPACK");
-            return "INSTALL_RESOURCEPACK";
         } else {
             updateConsole("Не удалось проверить целостность файлов игры, обратитесь к администратору.");
             return "UNEXPECTED";
         }
-    } else if(response.includes("OUTDATED")) {
-        launch_button.disabled = false;
-        buttonToggle(false);
-        return false;
     } else {
         updateConsole("Данные авторизации неверны, некорректны или сервера не доступны (Код 200)");
         Swal.fire({
@@ -224,7 +245,7 @@ function setOptions() {
         uuid: generateUUID(document.getElementById("nickname_placeholder").value)
     };
 
-    Authenticator.changeApiUrl("http://localhost:81");
+    Authenticator.changeApiUrl("https://yuompioka.ml");
     let MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
     opts.authorization = Authenticator.getAuth(document.getElementById("nickname_placeholder").value, MD5pass);
     updateConsole(`${MD5pass} ${opts.authorization.uuid}`)
@@ -242,6 +263,10 @@ async function launchGame() {
     settings.nickname = document.getElementById("nickname_placeholder").value;
     settings.memory = document.getElementById("ram_value").innerHTML;
     settings.uuid = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
+    settings.enabledMods['xaeros'] = document.getElementById("switch_xaeros").checked;
+    settings.enabledMods['litematica'] = document.getElementById("switch_litematica").checked;
+    settings.enabledMods['replaymod'] = document.getElementById("switch_replaymod").checked;
+    settings.enabledMods['footsteps'] = document.getElementById("switch_footsteps").checked;
 
     try {
         writeConfig(`${app_dir_alter}\\config.json`, settings);
@@ -282,36 +307,51 @@ async function uploadSkinProcess(authData) {
     let inner = document.getElementById('SkinViewer').contentWindow.document;
     updateConsole("Вы загружаете скин...");
     let checkbox = inner.getElementById("changeEdtion");
-    let skinFormat = "";
+
     if (checkbox.checked == true) {
-        skinFormat = "4px";
+        authData.skinFormat = "4px";
     } else {
-        skinFormat = "3px";
+        authData.skinFormat = "3px";
     }
 
-    let response = await executeRconCommand(`upload-validate ${authData.nickname} ${authData.passwordMD5} ${authData.ip} ${skinFormat}`);
 
-    if(response.includes("AUTHORIZED")){
-        Swal.fire({
-            title: "Пробуем загрузить...",
-            text: "Процесс установки скина инициализирован. Следуйте дальнейшим инструкциям в окне установки скина",
-            icon: "info",
-            showConfirmButton: false
-          });
-    } else {
-        Swal.fire({
-            title: "Эй!",
-            text: "Вы не можете установить скин не для своего аккаунта",
-            icon: "error",
-            showConfirmButton: false,
-            timer: 3000,
-          });
-    }
+    let url = "https://yuompioka.ml/upload";
+
+    let params = {
+        headers: {
+            "content-type":"application/json; charset=UTF-8"
+        },
+        body: JSON.stringify(authData),
+        method: "POST"
+    };
+    window.console.log(params);
+    let response = await fetch(url,params);
+
+    if (response.ok) {
+        let json = await response.json();
+        window.console.log(json);
+        if(json.status == "OK") {
+            Swal.fire({
+                title: "Пробуем загрузить...",
+                text: "Процесс установки скина инициализирован. Следуйте дальнейшим инструкциям в окне установки скина",
+                icon: "info",
+                showConfirmButton: false
+              });
+        } else {
+            Swal.fire({
+                title: "Эй!",
+                text: "Вы не можете установить скин не для своего аккаунта (или сервера не доступны)",
+                icon: "error",
+                showConfirmButton: false,
+                timer: 3000,
+              });
+    }};
+
 }
 
 function syncNickname(object) {
     object.elements["Nickname"].value = document.getElementById("nickname_placeholder").value;
-    updateConsole(`${object.elements["Nickname"].value}`)
+    //updateConsole(`${object.elements["Nickname"].value}`)
 }
 
 var form;

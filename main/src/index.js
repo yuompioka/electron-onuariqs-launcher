@@ -3,10 +3,12 @@ const path = require('path');
 
 const DESTINATION_PATH = `${app.getAppPath().replace('\\resources\\app.asar','')}\\.minecraft\\`;
 const APP_DIR = app.getAppPath().replace('\\resources\\app.asar','');
+const APP_VERSION = app.getVersion();
 
 var mainProcessVars = {
   path: DESTINATION_PATH,
   app_path: APP_DIR,
+  app_version: APP_VERSION
 }
 
 const {download} = require('electron-dl');
@@ -66,7 +68,7 @@ ipcMain.on('quit-app', function() {
 });
 
 ipcMain.on('variable-request', function (event, arg) {
-  event.sender.send('variable-reply', [mainProcessVars[arg[0]], mainProcessVars[arg[1]]]);
+  event.sender.send('variable-reply', [mainProcessVars[arg[0]], mainProcessVars[arg[1]], mainProcessVars["app_version"]]);
 });
 
 ipcMain.on('downloadUpdate', (event, arg) => {

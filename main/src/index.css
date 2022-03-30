@@ -409,7 +409,7 @@ input[type="text"]:focus, input[type="password"]:focus {
 .mods-choose {
   margin-left: 475px;
   transition: all 250ms cubic-bezier(.05,.53,.47,1.09);
-  opacity: 25%;
+  opacity: 80%;
 }
 
 .mods-choose:hover {
