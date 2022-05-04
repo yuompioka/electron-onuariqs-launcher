@@ -1,8 +1,8 @@
 {
   "name": "main",
-  "productName": "Onuariqs-Launcher",
-  "version": "1.2.54",
-  "description": "Onuariqs Launcher written on Electron",
+  "productName": "FactionsCraft-Launcher",
+  "version": "1.2.59",
+  "description": "FactionsCraft Launcher written on Electron",
   "main": "src/index.js",
   "icon": "/src/icon.ico",
   "scripts": {

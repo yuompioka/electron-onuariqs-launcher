@@ -325,7 +325,11 @@ input[type="text"]:focus, input[type="password"]:focus {
   transition: all 500ms ease-in;
 }
 
-.skincard:hover .rotate-icon {
+.rotate-icon:hover {
+  transform: scale(1.1);
+}
+
+.skincard.active .rotate-icon {
   transform: rotate(180deg);
 }
 
@@ -334,7 +338,7 @@ input[type="text"]:focus, input[type="password"]:focus {
   align-items: center;
 }
 
-.skincard:hover {
+.skincard.active {
   opacity: 1;
   position: relative;
   transform: translateX(0px);

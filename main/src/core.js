@@ -10,6 +10,7 @@ const $ = require('jquery');
 
 let minecraft_dir_alter = "";
 let app_dir_alter = "";
+let client;
 
 ipcRenderer.on('variable-reply', function (event, args) {
     minecraft_dir_alter = args[0];
@@ -23,10 +24,12 @@ ipcRenderer.on('variable-reply', function (event, args) {
                 document.getElementById("nickname_placeholder").value = config.nickname;
                 document.getElementById("ram_value").innerHTML = config.memory;
 
-                document.getElementById("switch_xaeros").checked = config.enabledMods.xaeros;
+                document.getElementById("switch_xaeros_minimap").checked = config.enabledMods['xaeros_minimap'];
+                document.getElementById("switch_xaeros_worldmap").checked = config.enabledMods['xaeros_worldmap'];
                 document.getElementById("switch_litematica").checked = config.enabledMods['litematica'];
-                document.getElementById("switch_replaymod").checked = config.enabledMods['replaymod'];
-                document.getElementById("switch_footsteps").checked = config.enabledMods['footsteps'];
+                document.getElementById("switch_malilib").checked = config.enabledMods['malilib'];
+                document.getElementById("switch_better_pvp").checked = config.enabledMods['better_pvp'];
+                document.getElementById("switch_inventory_tweaks").checked = config.enabledMods['inventory_tweaks'];
             }
         })
 
@@ -87,10 +90,12 @@ let settings = {
     memory: null,
     uuid: null,
     enabledMods: {
-        "xaeros": false,
+        "xaeros_worldmap": false,
+        "xaeros_minimap": false,
+        "malilib": false,
         "litematica": false,
-        "replaymod": false,
-        "footsteps": false
+        "better_pvp": false,
+        "inventory_tweaks": false
     }
 }
 
@@ -101,9 +106,9 @@ let opts = {
     // forge: "resources\\app\\.minecraft\\forge-1.16.5-36.2.8-installer.jar",
     javaPath: path.resolve(".minecraft\\jdk-17.0.1\\bin\\java.exe"),
     version: {
-        number: "1.18.1",
+        number: "1.18.2",
         type: "release",
-        custom: "fabric-loader-0.13.3-1.18.1"
+        custom: "fabric-loader-0.13.3-1.18.2"
     },
     memory: {
         max: null,
@@ -126,12 +131,13 @@ async function generateUUID(text) {
     return uuidv5(`Auth:${text}`, MY_NAMESPACE);
 }
 
-async function modpackChecked() {
+async function modpackChecked(isPeriodical = false) {
 
     let api_url = "https://yuompioka.ml/static/launcher/init.json";
     let response = await fetch(api_url);
     let data = await response.json();
-    updateConsole(data.use);
+    
+    if(!isPeriodical){updateConsole(data.use)}
 
     let newest_client_version = data.prod_version;
     let client = `${minecraft_dir_alter}\\client_version-${newest_client_version}.ino`;
@@ -149,6 +155,22 @@ async function modpackChecked() {
     }
 
     let iter_file = null;
+
+    // check all files in mods \/
+
+    let files = await fs.promises.readdir( `${minecraft_dir_alter}\\mods` );
+    let customModsFound = false;
+    for( const file of files ) {
+        iter_file = `${minecraft_dir_alter}\\mods\\${file}`;
+        window.console.log(`${data.required_mods[`${file}`]} ${file}`)
+        if(data.required_mods[`${file}`] == null){
+            if(isPeriodical){
+                return "CUSTOM_MOD_DETECTED";
+            }
+            try{fs.rmSync(iter_file)} catch{};
+            customModsFound = true
+        }
+    }
 
     // check modpack \/
     for (let [key, value] of Object.entries(data.required_mods)) {
@@ -186,13 +208,13 @@ async function modpackChecked() {
                 try{
                     fs.rmSync(iter_file);
                 } catch(e){};
-                updateConsole(`${hash}`);
+                if(!isPeriodical){updateConsole(`${hash}`)}
                 if (value[0]!="NO_HASH") {
                     return "MODPACK_CORRUPTED";
                 };
             };
         };
-        updateConsole(`${key} проверен.`, true);
+        if(!isPeriodical){updateConsole(`${key} проверен.`, true)}
     };
 
     return "MODPACK_CORRECT";
@@ -257,16 +279,18 @@ updateConsole("Консоль подключена к главному проц�
 
 async function launchGame() {
 
-    //launch_button.disabled = true;
-    //buttonToggle(true);
+    launch_button.disabled = true;
+    buttonToggle(true);
 
     settings.nickname = document.getElementById("nickname_placeholder").value;
     settings.memory = document.getElementById("ram_value").innerHTML;
     settings.uuid = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
-    settings.enabledMods['xaeros'] = document.getElementById("switch_xaeros").checked;
+    settings.enabledMods['xaeros_minimap'] = document.getElementById("switch_xaeros_minimap").checked;
+    settings.enabledMods['xaeros_worldmap'] = document.getElementById("switch_xaeros_worldmap").checked;
     settings.enabledMods['litematica'] = document.getElementById("switch_litematica").checked;
-    settings.enabledMods['replaymod'] = document.getElementById("switch_replaymod").checked;
-    settings.enabledMods['footsteps'] = document.getElementById("switch_footsteps").checked;
+    settings.enabledMods['malilib'] = document.getElementById("switch_malilib").checked;
+    settings.enabledMods['better_pvp'] = document.getElementById("switch_better_pvp").checked;
+    settings.enabledMods['inventory_tweaks'] = document.getElementById("switch_inventory_tweaks").checked;
 
     try {
         writeConfig(`${app_dir_alter}\\config.json`, settings);
@@ -281,18 +305,21 @@ async function launchGame() {
             setOptions();
             updateConsole("Запускаю клиент... (Код 301)");
             Swal.fire({
-                title: "Клиент запущен",
-                text: "Вы не можете взаимодействовать с лаунчером. Для нового входа перезапустите его.",
+                title: "Minecraft скоро запустится, ожидайте",
+                text: "Не закрывайте лаунчер, иначе сессия будет сброшена.",
                 icon: "info",
-                showConfirmButton: true,
+                showConfirmButton: false,
                 allowEscapeKey: false,
                 allowEnterKey: false,
                 allowOutsideClick: false,
               });
             try {
-                launcher.launch(opts);
+                client = await launcher.launch(opts);
+                await startMonitoring();
+                await AntiCheatIterate();
             }
             catch (e) {
+                window.console.log(e);
                 updateConsole("Лаунчер не смог создать процесс игры. Попробуйте ещё раз или обратитесь к администратору.");
             };
         } else {
@@ -392,16 +419,25 @@ async function promptDeleting() {
       })
 }
 
-function openModsMenu() {
-    let menu = document.getElementById("1");
-    menu.classList.add('active');
-    document.getElementById("expand-button").classList.add('active');
-}
-
-function closeModsMenu() {
-    let menu = document.getElementById("1");
-    menu.classList.remove('active');
-    document.getElementById("expand-button").classList.remove('active');
+function ElementChangeState(tostate, element_id, button_id, shouldSwitch = false){
+    let el = document.getElementById(element_id);
+    if(shouldSwitch){
+        if(el.classList.contains('active')){
+            el.classList.remove('active');
+            document.getElementById(button_id).classList.remove('active');
+        } else {
+            el.classList.add('active');
+            document.getElementById(button_id).classList.add('active');
+        }
+        return;
+    }
+    if(tostate=="active"){
+        el.classList.add('active');
+        document.getElementById(button_id).classList.add('active');
+    } else {
+        el.classList.remove('active');
+        document.getElementById(button_id).classList.remove('active');
+    }
 }
 
 let delete_button = document.getElementById("delete-button");
@@ -410,13 +446,18 @@ delete_button.onclick = async() => await promptDeleting();
 let open_folder = document.getElementById("open-folder-button");
 open_folder.onclick = () => showScreenshotsFolder();
 
+// MENUS OPEN & CLOSE \/
+
 let edit_mods = document.getElementById("mods-choose-button");
-edit_mods.onclick = () => openModsMenu();
+edit_mods.onclick = () => ElementChangeState('active', '1', 'expand-button');
 
 let close_mods = document.getElementById("expand-button");
-close_mods.onclick = () => closeModsMenu();
+close_mods.onclick = () => ElementChangeState('inactive', '1', 'expand-button');
+
+let open_skin_menu = document.getElementById("skin-button");
+open_skin_menu.onclick = () => ElementChangeState('active', 'skincard', 'skin-button', true);
 
 let launch_button = document.getElementById("launch-button");
 launch_button.onclick = async () => await launchGame();
-launcher.on('debug', (e) => updateConsole(`${e}`));
-//launcher.on('data', (e) => updateConsole(`${e}`));
+launcher.on('debug', (e) => {updateConsole(`${e}`)});
+//launcher.on('data', (e) => checkForPID(`PID = ${e}`));

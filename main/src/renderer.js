@@ -13,8 +13,18 @@ ipcRenderer.on('variable-reply', function (event, args) {
   minecraft_dir = args[0];
   app_dir = args[1];
   //updateConsole(app_dir)
-  try {fs.rmdirSync(`${minecraft_dir}\\assets\\skins\\`, { recursive: true });} catch(e){};
+  try {fs.rm(`${minecraft_dir}\\assets\\skins\\`, { recursive: true });} catch(e){};
 });
+
+ipcRenderer.on('kill-client', function (event, args) {
+  killClient();
+});
+
+function killClient() {
+  try{
+    process.kill(client.pid, 'SIGINT');
+  } catch {};
+}
 
 function deleteGameDir() {
   try{
@@ -22,6 +32,10 @@ function deleteGameDir() {
   } catch(e) {
     throw e;
   }
+}
+
+function quitApp() {
+  ipcRenderer.send('quit-app');
 }
 
 function deleteGameFile(dir) {
@@ -77,6 +91,9 @@ function unzipManager(state) {
     });
     launch_button.disabled = false;
     buttonToggle(false, "launch");
+    try {
+      fs.rm(`${app_dir}\\downloads\\${file_to_unzip}`, { recursive: true });
+    } catch(e) {};
   });
   
   unzipper.on('progress', function (fileIndex, fileCount) {
@@ -85,12 +102,15 @@ function unzipManager(state) {
   
   unzipper.on('error', function (err) {
     updateConsole('При распаковке произошла ошибка: ' + err);
+    try {
+      fs.rm(`${app_dir}\\downloads\\${file_to_unzip}`, { recursive: true });
+    } catch(e) {};
   });
 };
 
 async function downloadFile(url, filename) {
   try {
-    fs.rmdirSync(`${app_dir}\\downloads\\${filename}`, { recursive: true });
+    fs.rm(`${app_dir}\\downloads\\${filename}`, { recursive: true });
   } catch(e) {};
 
   ipcRenderer.send("downloadUpdate", {

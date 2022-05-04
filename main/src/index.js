@@ -29,7 +29,6 @@ const createWindow = () => {
       webSecurity: false
     },
   });
-
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   mainWindow.setResizable(true);
@@ -37,6 +36,9 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+  mainWindow.on('close', function(e){
+    mainWindow.webContents.send('kill-client');
+  });
 };
 app.commandLine.appendSwitch ("disable-http-cache");
 app.commandLine.appendSwitch('disable-site-isolation-trials')
@@ -50,7 +52,7 @@ app.on('ready', createWindow);
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    app.quit();
+    app.quit()
   }
 });
 
@@ -63,8 +65,8 @@ app.on('activate', () => {
 });
 
 ipcMain.on('quit-app', function() {
-  tray.window.close(); // Standart Event of the BrowserWindow object.
-  app.quit(); // Standart event of the app - that will close our app.
+  tray.window.close();
+  app.quit();
 });
 
 ipcMain.on('variable-request', function (event, arg) {

@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Лаунчер Onuariqs™</title>
+    <title>Лаунчер FactionsCraft</title>
     <link rel="stylesheet" href="index.css">
     <script src="index.js"></script>
   </head>
@@ -12,25 +12,25 @@
         <img id="expand-button" src="https://yuompioka.ml/static/launcher/expand.svg">
         <div class="mod-option">
           <div class="mod-info">
-            <p id="debug_text2">Replaymod</p><p id="version3">[no info]</p>
+            <p id="debug_text2">Xaero's Minimap</p><p id="version3">мини-карта</p>
           </div>
           <label class="switch">
-            <input type="checkbox" id="switch_replaymod">
+            <input type="checkbox" id="switch_xaeros_minimap">
             <span class="slider"></span>
           </label>
         </div>
         <div class="mod-option">
           <div class="mod-info">
-            <p id="debug_text2">Xaero's Minimap</p><p id="version3">[no info]</p>
+            <p id="debug_text2">Xaero's Worldmap</p><p id="version3">просмотр карты всего мира</p>
           </div>
           <label class="switch">
-            <input type="checkbox" id="switch_xaeros">
+            <input type="checkbox" id="switch_xaeros_worldmap">
             <span class="slider"></span>
           </label>
         </div>
         <div class="mod-option">
           <div class="mod-info">
-            <p id="debug_text2">LiteMatica</p><p id="version3">[no info]</p>
+            <p id="debug_text2">LiteMatica</p><p id="version3">инструмент для строительства</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="switch_litematica">
@@ -39,10 +39,28 @@
         </div>
         <div class="mod-option">
           <div class="mod-info">
-            <p id="debug_text2">Presence Footsteps</p><p id="version3">[no info]</p>
+            <p id="debug_text2">Malilib</p><p id="version3">зависимость для LiteMatica</p>
           </div>
           <label class="switch">
-            <input type="checkbox" id="switch_footsteps">
+            <input type="checkbox" id="switch_malilib">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="mod-option">
+          <div class="mod-info">
+            <p id="debug_text2">BetterPVP</p><p id="version3">удобный HUD и др.</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switch_better_pvp">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="mod-option">
+          <div class="mod-info">
+            <p id="debug_text2">Inventory Tweaks</p><p id="version3">упрощает работу с инвентарями</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="switch_inventory_tweaks">
             <span class="slider"></span>
           </label>
         </div>
@@ -60,13 +78,13 @@
     <div class="workstation">
       <div class="row workstation">
         <div class="skin-changer">
-          <div class="skincard">
-            <p id="debug_text">Выберите изображение формата<br>PNG формата 64х64px</p>
+          <div class="skincard" id="skincard">
+            <p id="debug_text">Выберите изображение формата<br>PNG разрешением 64 на 64 пикселя, размером &lt;32Кбайт</p>
             <div class="skin-iframe-container">
             <iframe class="skin_viewer" id="SkinViewer" src="https://yuompioka.ml/static/launcher/skin-viewer/index.html"></iframe>
-            <img src="https://yuompioka.ml/static/launcher/settings.svg" style="margin-right: 9px;" class="rotate-icon">
+            <img src="https://yuompioka.ml/static/launcher/settings.svg" style="margin-right: 9px;" class="rotate-icon" id="skin-button">
             </div>
-            <p id="version2">v1.1</p>
+            <p id="version2">v1.2</p>
           </div>
         </div>
         <div class="column text-news">
@@ -121,7 +139,7 @@
             </span>
           </button>
           <button class="round-button pushable" id="open-folder-button">
-            <span class="front-round front" id="front">
+            <span class="front-round front" id="open-folder">
               <img src="https://yuompioka.ml/static/launcher/media.svg">
             </span>
           </button>
@@ -178,6 +196,7 @@
   <script src="script.js"></script>
   <script src="jsonHandler.js"></script>
   <script src="auth.js"></script>
+  <script src="watchdog.js"></script>
   <script src="renderer.js"></script>
   <script src="core.js"></script>
   <script>
@@ -190,6 +209,7 @@
         text: `Ваш внешний IP-адрес: ${user_ip}`,
         icon: "info",
         showConfirmButton: false,
+        timer: 1500,
       });
     }
     </script>
