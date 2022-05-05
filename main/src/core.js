@@ -29,7 +29,6 @@ ipcRenderer.on('variable-reply', function (event, args) {
                 document.getElementById("switch_litematica").checked = config.enabledMods['litematica'];
                 document.getElementById("switch_malilib").checked = config.enabledMods['malilib'];
                 document.getElementById("switch_better_pvp").checked = config.enabledMods['better_pvp'];
-                document.getElementById("switch_inventory_tweaks").checked = config.enabledMods['inventory_tweaks'];
             }
         })
 
@@ -94,8 +93,7 @@ let settings = {
         "xaeros_minimap": false,
         "malilib": false,
         "litematica": false,
-        "better_pvp": false,
-        "inventory_tweaks": false
+        "better_pvp": false
     }
 }
 
@@ -290,7 +288,6 @@ async function launchGame() {
     settings.enabledMods['litematica'] = document.getElementById("switch_litematica").checked;
     settings.enabledMods['malilib'] = document.getElementById("switch_malilib").checked;
     settings.enabledMods['better_pvp'] = document.getElementById("switch_better_pvp").checked;
-    settings.enabledMods['inventory_tweaks'] = document.getElementById("switch_inventory_tweaks").checked;
 
     try {
         writeConfig(`${app_dir_alter}\\config.json`, settings);
@@ -440,6 +437,19 @@ function ElementChangeState(tostate, element_id, button_id, shouldSwitch = false
     }
 }
 
+function validateСompatibility(id){
+    let el = document.getElementById(id);
+    if(id == 'switch_better_pvp' && el.checked == true){
+        document.getElementById("switch_xaeros_minimap").checked = false;
+    } else if (id == 'switch_xaeros_minimap' && el.checked == true) {
+        document.getElementById("switch_better_pvp").checked = false;
+    } else if (id == 'switch_litematica') {
+        document.getElementById("switch_malilib").checked = el.checked;
+    } else if (id == 'switch_malilib') {
+        document.getElementById("switch_litematica").checked = el.checked;
+    }
+}
+
 let delete_button = document.getElementById("delete-button");
 delete_button.onclick = async() => await promptDeleting();
 
@@ -447,6 +457,15 @@ let open_folder = document.getElementById("open-folder-button");
 open_folder.onclick = () => showScreenshotsFolder();
 
 // MENUS OPEN & CLOSE \/
+
+let better_pvp_switch = document.getElementById("switch_better_pvp");
+better_pvp_switch.onclick = () => validateСompatibility('switch_better_pvp');
+let minimap_switch = document.getElementById("switch_xaeros_minimap");
+minimap_switch.onclick = () => validateСompatibility('switch_xaeros_minimap');
+let litematica = document.getElementById("switch_litematica");
+litematica.onclick = () => validateСompatibility('switch_litematica');
+let malilib = document.getElementById("switch_malilib");
+malilib.onclick = () => validateСompatibility('switch_malilib');
 
 let edit_mods = document.getElementById("mods-choose-button");
 edit_mods.onclick = () => ElementChangeState('active', '1', 'expand-button');

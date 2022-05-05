@@ -1,7 +1,7 @@
 {
   "name": "main",
   "productName": "FactionsCraft-Launcher",
-  "version": "1.2.59",
+  "version": "1.2.61",
   "description": "FactionsCraft Launcher written on Electron",
   "main": "src/index.js",
   "icon": "/src/icon.ico",

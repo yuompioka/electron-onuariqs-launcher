@@ -31,11 +31,11 @@ const createWindow = () => {
   });
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
-  mainWindow.setResizable(true);
+  mainWindow.setResizable(false);
   mainWindow.setMenuBarVisibility(false);
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
   mainWindow.on('close', function(e){
     mainWindow.webContents.send('kill-client');
   });
