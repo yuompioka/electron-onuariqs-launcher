@@ -23,12 +23,18 @@ ipcRenderer.on('variable-reply', function (event, args) {
             if (config.nickname != null){
                 document.getElementById("nickname_placeholder").value = config.nickname;
                 document.getElementById("ram_value").innerHTML = config.memory;
+                let parsed_mem = `${config.memory}`.match(/[0-9]+/i);
+                document.getElementById("ram_usage").value = parsed_mem[0];
 
-                document.getElementById("switch_xaeros_minimap").checked = config.enabledMods['xaeros_minimap'];
-                document.getElementById("switch_xaeros_worldmap").checked = config.enabledMods['xaeros_worldmap'];
-                document.getElementById("switch_litematica").checked = config.enabledMods['litematica'];
-                document.getElementById("switch_malilib").checked = config.enabledMods['malilib'];
-                document.getElementById("switch_better_pvp").checked = config.enabledMods['better_pvp'];
+                for(const [key, value] of Object.entries(config.enabledMods)){
+                    document.getElementById(`switch_${key}`).checked = value;
+                }
+
+                if(config.isPasswordSaved){
+                    settings.isPasswordSaved = true;
+                    settings.passwordHash = config.passwordHash;
+                    ElementChangeState('active', 'remember', 'remember-button', true);
+                }
             }
         })
 
@@ -70,15 +76,12 @@ function updateConsole(text, shouldReplace){
 };
 
 function buttonToggle(isDisabled){
-    let launch_button = document.getElementById("front");
-    let back = document.getElementById("launch-button");
-    if(isDisabled){
-        launch_button.style.background = "grey";
-        back.style.background = "rgb(54, 54, 54)";
+    let el = document.getElementById("launch-button");
+    if(el.classList.contains('inactive')){
+        el.classList.remove('inactive');
     } else {
-        launch_button.style.background = "linear-gradient(90deg, rgba(63,94,251,1) 0%, rgba(252,70,248,1) 100%)";
-        back.style.background = "linear-gradient(90deg, rgba(17,32,108,1) 0%, rgba(164,31,161,1) 100%)";
-    };
+        el.classList.add('inactive');
+    }
 };
 
 const { Client, Authenticator } = require('minecraft-launcher-core');
@@ -86,6 +89,8 @@ const launcher = new Client();
 
 let settings = {
     nickname: null,
+    isPasswordSaved: false,
+    passwordHash: null,
     memory: null,
     uuid: null,
     enabledMods: {
@@ -93,6 +98,7 @@ let settings = {
         "xaeros_minimap": false,
         "malilib": false,
         "litematica": false,
+        "distant_horizons": false,
         "better_pvp": false
     }
 }
@@ -102,11 +108,11 @@ let opts = {
     authorization: null,
     root: ".minecraft",
     // forge: "resources\\app\\.minecraft\\forge-1.16.5-36.2.8-installer.jar",
-    javaPath: path.resolve(".minecraft\\jdk-17.0.1\\bin\\java.exe"),
+    javaPath: path.resolve(".minecraft\\java-runtime-gamma\\windows-x64\\java-runtime-gamma\\bin\\java.exe"),
     version: {
-        number: "1.18.2",
+        number: "1.19",
         type: "release",
-        custom: "fabric-loader-0.13.3-1.18.2"
+        custom: "fabric-loader-0.14.7-1.19"
     },
     memory: {
         max: null,
@@ -114,12 +120,16 @@ let opts = {
     },
 }
 
-async function getLoginData() {
+async function getLoginData(MD5pass) {
     let tokenPrepare = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
+    if(MD5pass != null){
+        MD5pass = settings.passwordHash;
+    } else {
+        MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
+    }
     let authData = {
         username: document.getElementById("nickname_placeholder").value,
-        password: CryptoJS.MD5(document.getElementById("password_placeholder").value).toString(),
-        ip: user_ip,
+        password: MD5pass,
         clientToken: tokenPrepare.replace("-","")
     };
     return authData;
@@ -219,8 +229,8 @@ async function modpackChecked(isPeriodical = false) {
 
 };
 
-async function startupCheck() {
-    let response = await validateCredentials(await getLoginData());
+async function startupCheck(pass) {
+    let response = await validateCredentials(await getLoginData(pass));
     if(response.includes("LOGGED_IN")) {
         let state = await modpackChecked();
         if(state == "MODPACK_CORRECT") {
@@ -252,11 +262,11 @@ async function startupCheck() {
     }
 };
 
-function setOptions() {
+function setOptions(MD5pass = null) {
     let ram = document.getElementById("ram_value");
 
-    let ram_actual = ram.innerHTML.replace(" — ", "");
-    ram_actual = ram_actual.replace("GB", "G");
+    //let ram_actual = ram.innerHTML.replace(" — ", "");
+    let ram_actual = ram.innerHTML.replace("GB", "G");
 
     opts.memory.max = ram_actual;
     opts.memory.min = ram_actual;
@@ -265,10 +275,15 @@ function setOptions() {
         uuid: generateUUID(document.getElementById("nickname_placeholder").value)
     };
 
+    if(MD5pass != null){
+        MD5pass = settings.passwordHash;
+    } else {
+        MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
+    }
+
     Authenticator.changeApiUrl("https://yuompioka.ml");
-    let MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
     opts.authorization = Authenticator.getAuth(document.getElementById("nickname_placeholder").value, MD5pass);
-    updateConsole(`${MD5pass} ${opts.authorization.uuid}`)
+    //updateConsole(`${MD5pass} ${opts.authorization.uuid}`)
     updateConsole(`Аргумент RAM: ${ram_actual} (Код 400)`);
 
 };
@@ -283,11 +298,18 @@ async function launchGame() {
     settings.nickname = document.getElementById("nickname_placeholder").value;
     settings.memory = document.getElementById("ram_value").innerHTML;
     settings.uuid = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
-    settings.enabledMods['xaeros_minimap'] = document.getElementById("switch_xaeros_minimap").checked;
-    settings.enabledMods['xaeros_worldmap'] = document.getElementById("switch_xaeros_worldmap").checked;
-    settings.enabledMods['litematica'] = document.getElementById("switch_litematica").checked;
-    settings.enabledMods['malilib'] = document.getElementById("switch_malilib").checked;
-    settings.enabledMods['better_pvp'] = document.getElementById("switch_better_pvp").checked;
+
+    for(const [key, value] of Object.entries(settings.enabledMods)){
+        settings.enabledMods[key] = document.getElementById(`switch_${key}`).checked;
+    }
+
+    let pass = null;
+    if(settings.isPasswordSaved && settings.passwordHash == null){
+        settings.passwordHash = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
+        pass = settings.passwordHash
+    } else if (settings.passwordHash != null) {
+        pass = settings.passwordHash;
+    }
 
     try {
         writeConfig(`${app_dir_alter}\\config.json`, settings);
@@ -297,19 +319,10 @@ async function launchGame() {
 
     try {
         
-        if(await startupCheck() == "CORRECT"){
+        if(await startupCheck(pass) == "CORRECT"){
             updateConsole("Устанавливаю аргументы запуска (Код 300)");
-            setOptions();
+            setOptions(pass);
             updateConsole("Запускаю клиент... (Код 301)");
-            Swal.fire({
-                title: "Minecraft скоро запустится, ожидайте",
-                text: "Не закрывайте лаунчер, иначе сессия будет сброшена.",
-                icon: "info",
-                showConfirmButton: false,
-                allowEscapeKey: false,
-                allowEnterKey: false,
-                allowOutsideClick: false,
-              });
             try {
                 client = await launcher.launch(opts);
                 await startMonitoring();
@@ -327,69 +340,35 @@ async function launchGame() {
         updateConsole("Что-то пошло не так... (Код 100)" + e); // коды, начинающиеся с 1 - проблемы с клиентом, 2 - сервером, 3 - в процессе, 4 - успех
     };
 };
-async function uploadSkinProcess(authData) {
+
+async function syncNickname(object) {
+    object.elements["Nickname"].value = document.getElementById("nickname_placeholder").value;
+    let tokenPrepare = (await generateUUID(document.getElementById("nickname_placeholder").value)).toString();
+    object.elements["ClientToken"].value = tokenPrepare.replace("-","");
+    if(settings.passwordHash != null){
+        object.elements["PassHash"].value = settings.passwordHash
+    } else {
+        object.elements["PassHash"].value = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
+    }
     let inner = document.getElementById('SkinViewer').contentWindow.document;
     updateConsole("Вы загружаете скин...");
     let checkbox = inner.getElementById("changeEdtion");
 
     if (checkbox.checked == true) {
-        authData.skinFormat = "4px";
+        object.elements["SkinFormat"].value = "4px";
     } else {
-        authData.skinFormat = "3px";
+        object.elements["SkinFormat"].value = "3px";
     }
-
-
-    let url = "https://yuompioka.ml/upload";
-
-    let params = {
-        headers: {
-            "content-type":"application/json; charset=UTF-8"
-        },
-        body: JSON.stringify(authData),
-        method: "POST"
-    };
-    window.console.log(params);
-    let response = await fetch(url,params);
-
-    if (response.ok) {
-        let json = await response.json();
-        window.console.log(json);
-        if(json.status == "OK") {
-            Swal.fire({
-                title: "Пробуем загрузить...",
-                text: "Процесс установки скина инициализирован. Следуйте дальнейшим инструкциям в окне установки скина",
-                icon: "info",
-                showConfirmButton: false
-              });
-        } else {
-            Swal.fire({
-                title: "Эй!",
-                text: "Вы не можете установить скин не для своего аккаунта (или сервера не доступны)",
-                icon: "error",
-                showConfirmButton: false,
-                timer: 3000,
-              });
-    }};
-
-}
-
-function syncNickname(object) {
-    object.elements["Nickname"].value = document.getElementById("nickname_placeholder").value;
     //updateConsole(`${object.elements["Nickname"].value}`)
 }
 
 var form;
 document.getElementById('SkinViewer').onload = function() {
-    let change_to = document.getElementById('SkinViewer').contentWindow.document.getElementById("skinForm");
     let button_change = document.getElementById('SkinViewer').contentWindow.document.getElementById("skin-upload-button");
     if(button_change != null) {
         button = button_change
-        button.onclick = () => syncNickname(document.getElementById('SkinViewer').contentWindow.document.getElementById("skinForm"));
-    }
-    if(change_to != null){
-        form = change_to
-        form.onsubmit = async() => await uploadSkinProcess(await getLoginData());
-    }
+        button.onclick = async () => await syncNickname(document.getElementById('SkinViewer').contentWindow.document.getElementById("skinForm"));
+    };
 };
 
 async function promptDeleting() {
@@ -416,13 +395,20 @@ async function promptDeleting() {
       })
 }
 
-function ElementChangeState(tostate, element_id, button_id, shouldSwitch = false){
+function ElementChangeState(tostate, element_id, button_id, shouldSwitch = false, isPass = false){
     let el = document.getElementById(element_id);
     if(shouldSwitch){
         if(el.classList.contains('active')){
+            if(isPass){
+                settings.isPasswordSaved = false;
+                settings.passwordHash = null;
+            }
             el.classList.remove('active');
             document.getElementById(button_id).classList.remove('active');
         } else {
+            if(isPass){
+                settings.isPasswordSaved = true;
+            }
             el.classList.add('active');
             document.getElementById(button_id).classList.add('active');
         }
@@ -467,16 +453,30 @@ litematica.onclick = () => validateСompatibility('switch_litematica');
 let malilib = document.getElementById("switch_malilib");
 malilib.onclick = () => validateСompatibility('switch_malilib');
 
-let edit_mods = document.getElementById("mods-choose-button");
-edit_mods.onclick = () => ElementChangeState('active', '1', 'expand-button');
+let pass_rem = document.getElementById("remember-button");
+pass_rem.onclick = () => {
+    ElementChangeState('active', 'remember', 'remember-button', true, true);
+};
+
+//let edit_mods = document.getElementById("mods-choose-button");
+//edit_mods.onclick = () => ElementChangeState('active', '1', 'expand-button');
 
 let close_mods = document.getElementById("expand-button");
-close_mods.onclick = () => ElementChangeState('inactive', '1', 'expand-button');
+close_mods.onclick = () => ElementChangeState('active', '1', 'expand-button', true);
 
 let open_skin_menu = document.getElementById("skin-button");
 open_skin_menu.onclick = () => ElementChangeState('active', 'skincard', 'skin-button', true);
 
 let launch_button = document.getElementById("launch-button");
-launch_button.onclick = async () => await launchGame();
+launch_button.onclick = async () => {
+    await launchGame();
+};
 launcher.on('debug', (e) => {updateConsole(`${e}`)});
-//launcher.on('data', (e) => checkForPID(`PID = ${e}`));
+launcher.on('close', () => {returnToLauncher()});
+let wasBooted = false;
+launcher.on('data', () => {
+    if(!wasBooted){
+        ipcRenderer.send('minimize');
+    }
+    wasBooted = true;
+});

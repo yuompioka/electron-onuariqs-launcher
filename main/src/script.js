@@ -34,8 +34,8 @@ cards.forEach((card) => {
 
 var slider = document.getElementById("ram_usage");
 var output = document.getElementById("ram_value");
-output.innerHTML = ` — ${slider.value}GB`
+output.innerHTML = `${slider.value}GB`
 
 slider.oninput = function() {
-  output.innerHTML = ` — ${this.value}GB`
+  output.innerHTML = `${this.value}GB`
 }

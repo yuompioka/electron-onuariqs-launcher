@@ -34,6 +34,15 @@ function deleteGameDir() {
   }
 }
 
+function returnToLauncher() {
+  wasBooted = false;
+  launch_button.disabled = false;
+  buttonToggle(false);
+  ipcRenderer.send('unminimize');
+  updateConsole('Клиент был выключен (Код 302)');
+  stopMonitoring();
+}
+
 function quitApp() {
   ipcRenderer.send('quit-app');
 }
@@ -82,6 +91,7 @@ function unzipManager(state) {
 
   unzipper.on('extract', () => {
     updateConsole('Файлы разархивированы.');
+    document.getElementById('download-process-bar').style.width = '0%';
     Swal.fire({
       title: "Файлы разархивированы",
       text: "Все необходимые для работы файлы успешно загружены и распакованы",
@@ -122,9 +132,15 @@ async function downloadFile(url, filename) {
         }});
 }
 
+function updateDownloadProgress(current_percent) {
+  let el = document.getElementById('download-process-bar');
+  el.style.width = `${Math.floor(current_percent * 100)}%`;
+}
 
 ipcRenderer.on('updateDownloadProgress', (event, obj) => {
-  let progress_bar_text = document.getElementById("progress_bar_text");
+  updateDownloadProgress(obj.percent);
+
+  /*let progress_bar_text = document.getElementById("progress_bar_text");
   let remaining = document.getElementById("remaining");
   let progress_bar = document.getElementById("progress_bar");
 
@@ -142,29 +158,30 @@ ipcRenderer.on('updateDownloadProgress', (event, obj) => {
   remaining.innerHTML = `${loaded}/${total}`;
 
   progress_bar.max = 100;
-  progress_bar.value = Math.floor(obj.percent * 100);
+  progress_bar.value = Math.floor(obj.percent * 100);*/
 });
 
 ipcRenderer.on("DownloadCompleted", (event, obj) => {
   updateConsole(`Загрузка файла ${obj.path} (${obj.url}) завершена.`);
+
   let extract = "";
 
   if (obj.url.includes("modpack.zip")) {
 
-    try {fs.rmdirSync(`${minecraft_dir}\\config\\`, { recursive: true });
-    fs.rmdirSync(`${minecraft_dir}\\mods\\`, { recursive: true });} catch(e){};
+    try {fs.rmSync(`${minecraft_dir}\\config\\`, { recursive: true });
+    fs.rmSync(`${minecraft_dir}\\mods\\`, { recursive: true });} catch(e){};
 
     extract = "modpack";
   } else if (obj.url.includes("resourcepack.zip")) {
 
     try {
-    fs.rmdirSync(`${minecraft_dir}\\resourcepacks\\`, { recursive: true });} catch(e){};
+    fs.rmSync(`${minecraft_dir}\\resourcepacks\\`, { recursive: true });} catch(e){};
 
     extract = "resourcepack";
   } else {
 
     try {
-    fs.rmdirSync(minecraft_dir, { recursive: true }); } catch(e){};
+    fs.rmSync(minecraft_dir, { recursive: true }); } catch(e){};
 
     extract = "game";
   }

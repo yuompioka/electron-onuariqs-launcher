@@ -5,6 +5,8 @@ const DESTINATION_PATH = `${app.getAppPath().replace('\\resources\\app.asar','')
 const APP_DIR = app.getAppPath().replace('\\resources\\app.asar','');
 const APP_VERSION = app.getVersion();
 
+let mainWindow;
+
 var mainProcessVars = {
   path: DESTINATION_PATH,
   app_path: APP_DIR,
@@ -19,9 +21,9 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 }
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 1280 + 20,
-    height: 720,
+  mainWindow = new BrowserWindow({
+    width: 1024 + 20,
+    height: 600 + 20,
     icon: path.join(__dirname, 'icon.ico'),
     webPreferences: {
       nodeIntegration: true,
@@ -65,13 +67,20 @@ app.on('activate', () => {
 });
 
 ipcMain.on('quit-app', function() {
-  tray.window.close();
   app.quit();
 });
 
 ipcMain.on('variable-request', function (event, arg) {
   event.sender.send('variable-reply', [mainProcessVars[arg[0]], mainProcessVars[arg[1]], mainProcessVars["app_version"]]);
 });
+
+ipcMain.on('minimize', () => {
+  mainWindow.hide()
+})
+
+ipcMain.on('unminimize', () => {
+  mainWindow.show()
+})
 
 ipcMain.on('downloadUpdate', (event, arg) => {
   arg.properties.onProgress = function(obj) {

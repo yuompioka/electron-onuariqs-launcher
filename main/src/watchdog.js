@@ -12,11 +12,19 @@ async function sendReportToServer(state){
     await fetch(url,params);
 }
 
+let currentInterval;
+
 async function AntiCheatIterate(){
     let state = await modpackChecked(true);
     await sendReportToServer(state);
 }
 
 async function startMonitoring(){
-    setInterval(async () => await AntiCheatIterate(), 1000 * 30);
+    currentInterval = setInterval(async () => await AntiCheatIterate(), 1000 * 30);
+};
+
+function stopMonitoring(){
+    if(currentInterval != null){
+        clearInterval(currentInterval);
+    }
 };
