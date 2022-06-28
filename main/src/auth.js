@@ -1,5 +1,5 @@
 async function validateCredentials(authData) {
-    let url = "https://yuompioka.ml/credentials/validate";
+    let url = `https://${DOMAIN}/credentials/validate`;
 
     let params = {
         headers: {

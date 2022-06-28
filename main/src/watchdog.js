@@ -1,5 +1,5 @@
 async function sendReportToServer(state){
-    let url = "https://yuompioka.ml/session/minecraft/modpackValidate";
+    let url = `https://${DOMAIN}/session/minecraft/modpackValidate`;
 
     let params = {
         headers: {

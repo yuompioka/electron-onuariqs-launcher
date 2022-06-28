@@ -7,6 +7,7 @@ const progress_bar = document.getElementById("progress_bar");
 const progress_bar_text = document.getElementById("progress_bar_text");
 const remaining = document.getElementById("remaining");
 const $ = require('jquery');
+const DOMAIN = "yuompioka.ru";
 
 let minecraft_dir_alter = "";
 let app_dir_alter = "";
@@ -61,9 +62,9 @@ function getChecksum(path) {
 
 async function downloadManager(instruction) {
     if (instruction == "GAME") {
-        downloadFile("https://yuompioka.ml/static/launcher/game.zip", "game.zip");
+        downloadFile(`https://${DOMAIN}/static/launcher/game.zip`, "game.zip");
     } else if (instruction == "MODPACK") {
-        downloadFile("https://yuompioka.ml/static/launcher/modpack.zip", "modpack.zip");
+        downloadFile(`https://${DOMAIN}/static/launcher/modpack.zip`, "modpack.zip");
     }
 };
 
@@ -141,7 +142,7 @@ async function generateUUID(text) {
 
 async function modpackChecked(isPeriodical = false) {
 
-    let api_url = "https://yuompioka.ml/static/launcher/init.json";
+    let api_url = `https://${DOMAIN}/static/launcher/init.json`;
     let response = await fetch(api_url);
     let data = await response.json();
     
@@ -281,7 +282,7 @@ function setOptions(MD5pass = null) {
         MD5pass = CryptoJS.MD5(document.getElementById("password_placeholder").value).toString();
     }
 
-    Authenticator.changeApiUrl("https://yuompioka.ml");
+    Authenticator.changeApiUrl(`https://${DOMAIN}`);
     opts.authorization = Authenticator.getAuth(document.getElementById("nickname_placeholder").value, MD5pass);
     //updateConsole(`${MD5pass} ${opts.authorization.uuid}`)
     updateConsole(`Аргумент RAM: ${ram_actual} (Код 400)`);
