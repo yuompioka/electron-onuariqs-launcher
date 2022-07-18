@@ -13,6 +13,67 @@ let minecraft_dir_alter = "";
 let app_dir_alter = "";
 let client;
 
+let global_options;
+let update_blocked;
+
+async function getGlobalOptions() {
+    try {
+        let api_url = `https://${DOMAIN}/static/launcher/opts.json`;
+        let response = await fetch(api_url);
+        global_options = await response.json();
+    } catch {
+        updateConsole("Не удалось установить соединение с серверами для получения важной информации (Код 102)");
+    }
+}
+
+async function isUpdatePresentOnPC(update) {
+
+    for(let i = 0; i < update.files.length; i++){
+        let loop_object = update.files[i]
+        let loop_file = `${app_dir_alter}\\${loop_object[0]}`
+        if(!fs.existsSync(loop_file)){
+            updateConsole(`Файла ${loop_file} нет`)
+            return false
+        }
+        let hash = await getChecksum(loop_file)
+        if(loop_object[1] != hash){
+            updateConsole(`${loop_object[1]} != ${hash}`)
+            return false
+        }
+    }
+    updateConsole(`Обновление ${update.id} проверено.`)
+    return true
+
+}
+
+function until(conditionFunction) {
+
+    const poll = resolve => {
+      if(conditionFunction()) resolve();
+      else setTimeout(_ => poll(resolve), 400);
+    }
+  
+    return new Promise(poll);
+  }
+
+async function checkUpdates() {
+
+    for(let i = 0; i < global_options.updates.length; i++){
+        let object = global_options.updates[i]
+        //updateConsole(`${object.id} ${object.files}`)
+        if(!(await isUpdatePresentOnPC(object))){
+            updateConsole(`Устанавливаю обновление ${object.id} . . .`)
+            await downloadUpdate(object.id, object.dlink)
+            update_blocked = true
+            await until(_ => update_blocked == false);
+        }
+    }
+}
+
+async function downloadUpdate(update_id, dlink){
+    await downloadFile(dlink, `${update_id}.zip`)
+}
+
 ipcRenderer.on('variable-reply', function (event, args) {
     minecraft_dir_alter = args[0];
     app_dir_alter = args[1];
@@ -62,9 +123,9 @@ function getChecksum(path) {
 
 async function downloadManager(instruction) {
     if (instruction == "GAME") {
-        downloadFile(`https://${DOMAIN}/static/launcher/game.zip`, "game.zip");
+        downloadFile(global_options.links[0], "game.zip");
     } else if (instruction == "MODPACK") {
-        downloadFile(`https://${DOMAIN}/static/launcher/modpack.zip`, "modpack.zip");
+        downloadFile(global_options.links[1], "modpack.zip");
     }
 };
 
@@ -318,9 +379,14 @@ async function launchGame() {
         updateConsole("Не получилось сохранить файл конфигурации.")
     }
 
+    await getGlobalOptions();
+
     try {
         
         if(await startupCheck(pass) == "CORRECT"){
+
+            await checkUpdates();
+
             updateConsole("Устанавливаю аргументы запуска (Код 300)");
             setOptions(pass);
             updateConsole("Запускаю клиент... (Код 301)");
@@ -472,7 +538,7 @@ let launch_button = document.getElementById("launch-button");
 launch_button.onclick = async () => {
     await launchGame();
 };
-launcher.on('debug', (e) => {updateConsole(`${e}`)});
+//launcher.on('debug', (e) => {updateConsole(`${e}`)});
 launcher.on('close', () => {returnToLauncher()});
 let wasBooted = false;
 launcher.on('data', () => {

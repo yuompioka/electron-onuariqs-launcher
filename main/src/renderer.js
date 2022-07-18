@@ -75,13 +75,7 @@ async function executeRconCommand(command) {
 let file_to_unzip = ""
 
 function unzipManager(state) {
-  if (state == "modpack") {
-    file_to_unzip = "modpack.zip"
-  } else if (state == "game") {
-    file_to_unzip = "game.zip"
-  } else {
-    file_to_unzip = "resourcepack.zip"
-  }
+  file_to_unzip = state;
   let ZIP_FILE_PATH = `${app_dir}\\downloads\\${file_to_unzip}`;
   let unzipper = new DecompressZip(ZIP_FILE_PATH);
 
@@ -92,15 +86,23 @@ function unzipManager(state) {
   unzipper.on('extract', () => {
     updateConsole('Файлы разархивированы.');
     document.getElementById('download-process-bar').style.width = '0%';
-    Swal.fire({
-      title: "Файлы разархивированы",
-      text: "Все необходимые для работы файлы успешно загружены и распакованы",
-      icon: "success",
-      showConfirmButton: false,
-      timer: 1500,
-    });
-    launch_button.disabled = false;
-    buttonToggle(false, "launch");
+
+    if(file_to_unzip == "game.zip" || file_to_unzip == "modpack.zip"){
+
+      Swal.fire({
+        title: "Файлы разархивированы",
+        text: "Все необходимые для работы файлы успешно загружены и распакованы",
+        icon: "success",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      launch_button.disabled = false;
+      buttonToggle(false, "launch");
+    } else {
+      update_blocked = false;
+    }
+
     try {
       fs.rm(`${app_dir}\\downloads\\${file_to_unzip}`, { recursive: true });
     } catch(e) {};
@@ -164,27 +166,20 @@ ipcRenderer.on('updateDownloadProgress', (event, obj) => {
 ipcRenderer.on("DownloadCompleted", (event, obj) => {
   updateConsole(`Загрузка файла ${obj.path} (${obj.url}) завершена.`);
 
-  let extract = "";
+  let extract = obj.url.match(/[a-zA-Z0-9]+\.zip/)
 
   if (obj.url.includes("modpack.zip")) {
 
     try {fs.rmSync(`${minecraft_dir}\\config\\`, { recursive: true });
     fs.rmSync(`${minecraft_dir}\\mods\\`, { recursive: true });} catch(e){};
 
-    extract = "modpack";
-  } else if (obj.url.includes("resourcepack.zip")) {
+  } else if (obj.url.includes("game.zip")) {
 
     try {
-    fs.rmSync(`${minecraft_dir}\\resourcepacks\\`, { recursive: true });} catch(e){};
+    fs.rmSync(minecraft_dir, { recursive: true });} catch(e){};
 
-    extract = "resourcepack";
-  } else {
-
-    try {
-    fs.rmSync(minecraft_dir, { recursive: true }); } catch(e){};
-
-    extract = "game";
   }
+
   unzipManager(extract);
 
 })
